@@ -24,6 +24,7 @@ async function run() {
   try {
     const appointmentOptionCollection = client.db("patientReportHub").collection("appointmentOption");
     const bookingsCollection = client.db("patientReportHub").collection("bookings");
+    const usersCollection = client.db("patientReportHub").collection("users");
 
     // use aggregate to query multiple collection and then merge data
     app.get("/appointmentOptions", async (req, res) => {
@@ -60,7 +61,7 @@ async function run() {
       res.send(result);
     });
 
-    
+
 
     // email wise booking list API
     app.get("/bookings", async (req, res) => {
@@ -76,6 +77,12 @@ async function run() {
       // Sending the retrieved bookings as the response to the client
     });
 
+
+    app.post('/users', async(req, res)=>{
+      const newUser = req.body;
+      const result = await usersCollection.insertOne(newUser);
+      res.send(result);
+    })
 
 
 
