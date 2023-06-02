@@ -25,10 +25,21 @@ async function run() {
     const appointmentOptionCollection = client.db("patientReportHub").collection("appointmentOption");
     const bookingsCollection = client.db("patientReportHub").collection("bookings");
 
+    // use aggregate to query multiple collection and then merge data
     app.get("/appointmentOptions", async (req, res) => {
-      const query = {};
-      const options = await appointmentOptionCollection.find(query).toArray();
-      res.send(options);
+      const date = req.query.date; // Extract the 'date' parameter from the query string
+      const query = {}; // Set an empty query object to retrieve all appointment options
+      const options = await appointmentOptionCollection.find(query).toArray(); // Retrieve all appointment options from the database
+      const bookingQuery = { appointmentDate: date }; // Set the query to retrieve all bookings for the specified date
+      const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray(); // Retrieve all bookings for the specified date from the database
+      options.forEach((option) => {
+        // Loop through each appointment option
+        const optionBooked = alreadyBooked.filter((book) => book.treatment === option.name); // Filter the bookings to get all bookings for the current appointment option
+        const bookedSlots = optionBooked.map((book) => book.slot); // Extract the time slots that have already been booked for the current appointment option
+        const remainingSlots = option.slots.filter((slot) => !bookedSlots.includes(slot)); // Filter out the booked time slots from the current appointment option's slots
+        option.slots = remainingSlots; // Update the appointment option's slots to include only the remaining slots
+      });
+      res.send(options); // Send the updated list of appointment options as the response to the client
     });
 
     app.post("/bookings", async (req, res) => {
