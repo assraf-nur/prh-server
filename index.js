@@ -43,10 +43,42 @@ async function run() {
     });
 
     app.post("/bookings", async (req, res) => {
-      const bookings = req.body;
-      const result = await bookingsCollection.insertOne(bookings);
+      const booking = req.body;
+      const query = {
+        appointmentDate: booking.appointmentDate,
+        email: booking.email,
+        treatment: booking.treatment,
+      };
+
+      const alreadyBooked = await bookingsCollection.find(query).toArray();
+      if (alreadyBooked.length) {
+        const message = `You already have a booking on ${booking.appointmentDate}`;
+        return res.send({ acknowledged: false, message });
+      }
+
+      const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
+
+    
+
+    // email wise booking list API
+    app.get("/bookings", async (req, res) => {
+      // Route handler for a GET request to "/bookings"
+      const email = req.query.email;
+      // Extracting the value of the "email" query parameter from the request
+      const query = { email: email };
+      // Creating a query object with the extracted email value
+      const bookings = await bookingsCollection.find(query).toArray();
+      // Performing a database query using the `find` method on the `bookingsCollection` collection,
+      // passing in the query object. It retrieves all bookings that match the provided email.
+      res.send(bookings);
+      // Sending the retrieved bookings as the response to the client
+    });
+
+
+
+
   } finally {
   }
 }
