@@ -43,6 +43,7 @@ async function run() {
     const bookingsCollection = client.db("patientReportHub").collection("bookings");
     const usersCollection = client.db("patientReportHub").collection("users");
     const doctorsCollection = client.db("patientReportHub").collection("doctors");
+    const reportsCollection = client.db("patientReportHub").collection("reports");
 
     // use aggregate to query multiple collection and then merge data
     app.get("/appointmentOptions", async (req, res) => {
@@ -116,6 +117,34 @@ async function run() {
       const newUser = req.body;
       const result = await usersCollection.insertOne(newUser);
       res.send(result);
+    });
+
+    // add reports
+    app.post("/reports", async (req, res) => {
+      const report = req.body;
+      const result = await reportsCollection.insertOne(report);
+      res.send(result);
+    });
+
+    // serve reports
+    app.get("/reports", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const reports = await reportsCollection.find(query).toArray();
+      res.send(reports);
+    });
+
+    // delete report
+    app.delete("/reports/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      try {
+        const result = await reportsCollection.deleteOne(filter);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete report:", error);
+        res.status(500).send("Failed to delete report");
+      }
     });
 
     // add doctor api
