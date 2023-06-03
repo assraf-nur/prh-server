@@ -42,6 +42,7 @@ async function run() {
     const appointmentOptionCollection = client.db("patientReportHub").collection("appointmentOption");
     const bookingsCollection = client.db("patientReportHub").collection("bookings");
     const usersCollection = client.db("patientReportHub").collection("users");
+    const doctorsCollection = client.db("patientReportHub").collection("doctors");
 
     // use aggregate to query multiple collection and then merge data
     app.get("/appointmentOptions", async (req, res) => {
@@ -58,6 +59,13 @@ async function run() {
         option.slots = remainingSlots; // Update the appointment option's slots to include only the remaining slots
       });
       res.send(options); // Send the updated list of appointment options as the response to the client
+    });
+
+    // took appointment options for add doctor
+    app.get("/appointmentSpecialty", async (req, res) => {
+      const query = {};
+      const result = await appointmentOptionCollection.find(query).project({ name: 1 }).toArray();
+      res.send(result);
     });
 
     app.post("/bookings", async (req, res) => {
@@ -110,6 +118,39 @@ async function run() {
       res.send(result);
     });
 
+    // add doctor api
+    app.post("/doctors", async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorsCollection.insertOne(doctor);
+      res.send(result);
+    });
+
+    // serve all doctors from server
+    app.get("/doctors", async (req, res) => {
+      const query = {};
+      const doctors = await doctorsCollection.find(query).toArray();
+      res.send(doctors);
+    });
+
+    // delete doctor
+    // app.delete("/doctors/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const result = await doctorsCollection.deleteOne(filter);
+    //   res.send(result);
+    // });
+    app.delete("/doctors/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      try {
+        const result = await doctorsCollection.deleteOne(filter);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete doctor:", error);
+        res.status(500).send("Failed to delete doctor");
+      }
+    });
+
     // serve all users
     app.get("/users", async (req, res) => {
       const query = {};
@@ -138,8 +179,6 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
     });
-
-    
   } finally {
   }
 }
