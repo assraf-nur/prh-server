@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -11,6 +12,22 @@ app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@phr.wy7ryxx.mongodb.net/?retryWrites=true&w=majority`;
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.send(401).send("Unauthorized access");
+  }
+  const token = authHeader.split("")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.send(403).sen("Forbidden access");
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -61,8 +78,6 @@ async function run() {
       res.send(result);
     });
 
-
-
     // email wise booking list API
     app.get("/bookings", async (req, res) => {
       // Route handler for a GET request to "/bookings"
@@ -77,11 +92,29 @@ async function run() {
       // Sending the retrieved bookings as the response to the client
     });
 
+    // jwt function
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user && user.email) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: "1h" });
+        return res.send({ accessToken: token });
+      }
+      res.status(403).send({ accessToken: "" });
+    });
 
-    app.post('/users', async(req, res)=>{
+    app.post("/users", async (req, res) => {
       const newUser = req.body;
       const result = await usersCollection.insertOne(newUser);
       res.send(result);
+    });
+
+    // serve all users
+    app.get('/users', async(req,res)=>{
+      const query = {};
+      const users = await usersCollection.find(query).toArray();
+      res.send(users);
     })
 
 
