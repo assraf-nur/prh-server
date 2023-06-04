@@ -44,6 +44,7 @@ async function run() {
     const usersCollection = client.db("patientReportHub").collection("users");
     const doctorsCollection = client.db("patientReportHub").collection("doctors");
     const reportsCollection = client.db("patientReportHub").collection("reports");
+    const prescriptionsCollection = client.db("patientReportHub").collection("prescriptions");
 
     // use aggregate to query multiple collection and then merge data
     app.get("/appointmentOptions", async (req, res) => {
@@ -119,6 +120,34 @@ async function run() {
       res.send(result);
     });
 
+    // add prescriptions
+    app.post("/prescriptions", async (req, res) => {
+      const prescription = req.body;
+      const result = await prescriptionsCollection.insertOne(prescription);
+      res.send(result);
+    });
+
+    // serve prescriptions as user email
+    app.get("/prescriptions", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const prescriptions = await prescriptionsCollection.find(query).toArray();
+      res.send(prescriptions);
+    });
+
+    // delete prescription
+    app.delete("/prescriptions/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      try {
+        const result = await prescriptionsCollection.deleteOne(filter);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete report:", error);
+        res.status(500).send("Failed to delete report");
+      }
+    });
+
     // add reports
     app.post("/reports", async (req, res) => {
       const report = req.body;
@@ -161,13 +190,6 @@ async function run() {
       res.send(doctors);
     });
 
-    // delete doctor
-    // app.delete("/doctors/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const result = await doctorsCollection.deleteOne(filter);
-    //   res.send(result);
-    // });
     app.delete("/doctors/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
