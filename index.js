@@ -208,6 +208,27 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
     });
+
+    // check doctor or not
+    app.get("/user/doctor/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isDoctor: user?.role === "doctor" });
+    });
+
+    // search reports by email
+    app.get("/reports/search", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = { email: email };
+        const reports = await reportsCollection.find(query).toArray();
+        res.send(reports);
+      } catch (error) {
+        console.error("Error searching reports:", error);
+        res.status(500).send("Failed to search reports");
+      }
+    });
   } finally {
   }
 }
